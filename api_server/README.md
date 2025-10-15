@@ -1,14 +1,3 @@
-Parfait 👍
-Tu veux donc un **README technique propre et à jour** pour ton serveur **FastAPI minimal**, contenu dans un seul fichier `API.py`, avec **deux routes principales :**
-
-- `/generate` → génération texte à partir d’un prompt
-- `/vqa` → analyse visuelle + question (image + texte)
-
-Et sans variables d’environnement.
-Voici une version claire, pro et prête pour GitHub 👇
-
----
-
 # 🧠 AI Bicycle Companion — FastAPI Server
 
 This repository contains the **FastAPI backend** used in the _AI Bicycle Companion_ project — an interactive mobile app developed during the [Liquid AI x W&B x Lambda Hackathon (Tokyo, 2025)](https://hackathons.liquid.ai/), where it won 🥈 **2nd Place** for creativity and human-centered AI.
