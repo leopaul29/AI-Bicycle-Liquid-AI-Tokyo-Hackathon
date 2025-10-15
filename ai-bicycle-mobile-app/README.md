@@ -1,50 +1,203 @@
-# Welcome to your Expo app 👋
+# 🚴‍♂️ AI Bicycle Companion — Mobile App (Expo / React Native)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This repository contains the **mobile client** of the _AI Bicycle Companion_ — an interactive Japanese-speaking assistant designed for hands-free conversations while cycling.
+Developed during the [Liquid AI x W&B x Lambda Hackathon (Tokyo, 2025)](https://hackathons.liquid.ai/), where the project won **2nd Place** 🥈.
 
-## Get started
+---
 
-1. Install dependencies
+## 📱 Overview
 
-   ```bash
-   npm install
-   ```
+The mobile app acts as the **front-end interface** between the user, the voice system, and the AI model served via a local **FastAPI backend**.
+It handles:
 
-2. Start the app
+- 🎙️ **Speech recording** (10-second voice snippets)
+- 🔊 **Speech-to-text (Whisper API or local mock)**
+- 🤖 **LLM interaction** (via HTTP call to Python server)
+- 🗣️ **Text-to-speech output** using Expo Speech API
 
-   ```bash
-   npx expo start
-   ```
+The architecture prioritizes **lightweight communication**, **fast feedback**, and **hands-free usage** suitable for real-world cycling.
 
-In the output, you'll find options to open the app in a
+## ![demo](app-screenshot.jpg)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## ⚙️ Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Layer                 | Technology                                            |
+| --------------------- | ----------------------------------------------------- |
+| Framework             | [Expo SDK 51+](https://docs.expo.dev/) / React Native |
+| Audio & TTS           | `expo-av`, `expo-speech`                              |
+| File Handling         | `expo-file-system`, `expo-permissions`                |
+| HTTP Client           | Native `fetch` (with FormData for audio)              |
+| Environment Variables | `dotenv` + `expo-constants`                           |
+| Development Tools     | Android Studio (emulator) or Expo Go (mobile)         |
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 🧠 Data Flow
 
-```bash
-npm run reset-project
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as Expo App
+    participant W as Whisper API (STT)
+    participant S as FastAPI Server (LFM Model)
+
+    U->>A: Tap “Record” button
+    A->>A: Record audio (10 sec) with `expo-av`
+    A->>W: Send audio → Whisper API (Speech-to-Text)
+    W-->>A: Return transcription (Japanese text)
+    A->>S: Send JSON {text, metadata} to FastAPI
+    S-->>A: Return model response (comment / dialogue)
+    A->>A: Display + play response using `expo-speech`
+    A->>U: 🔊 Spoken output
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 📂 Project Structure
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+/app
+ ├── index.tsx                  # Main screen / UI
+ ├── utils/
+ │    ├── recordAudio.ts        # Start / stop / save recording
+ │    ├── transcribeAudio.ts    # Send audio to Whisper API
+ │    └── sendToModelServer.ts  # Communicate with FastAPI backend
+ ├── components/
+ │    └── MicButton.tsx         # Reusable record button
+ ├── assets/                    # Static assets (icons, sounds)
+.env                            # API keys (Hugging Face / Local server)
+app.json                        # Expo configuration (permissions, extras)
+package.json
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## 🔐 Environment Setup
 
-Join our community of developers creating universal apps.
+Create a `.env` file at the root:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+HUGGINGFACE_API_URL=https://api-inference.huggingface.co/models/your-whisper-model
+FASTAPI_SERVER_URL=http://10.0.0.XX:8000  # Replace with your LAN IP
+OPENAI_API_KEY=sk-xxxxxx
+```
+
+Make sure to reference these in code:
+
+```tsx
+import Constants from "expo-constants";
+const API_URL = Constants.expoConfig?.extra?.FASTAPI_SERVER_URL;
+```
+
+---
+
+## 🧩 Permissions (Expo)
+
+Update `app.config.ts`:
+
+```json
+{
+   "name": "AI Bicycle Companion",
+   "slug": "ai-bike-companion",
+   "permissions": ["AUDIO_RECORDING"],
+   "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ],
+   "extra": {
+        "FASTAPI_SERVER_URL": process.env.FASTAPI_SERVER_URL,
+      "OPENAI_API_KEY": process.env.OPENAI_API_KEY,
+      "WHISPER_API_URL": process.env.WHISPER_API_URL,
+      "HUGGINGFACE_API_URL": process.env.HUGGINGFACE_API_URL,
+      "HUGGINGFACE_API_KEY": process.env.HUGGINGFACE_API_KEY
+    },
+}
+```
+
+---
+
+## 🚀 Run Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start Expo
+npm run start
+
+# Launch Android emulator or scan QR in Expo Go
+```
+
+If your FastAPI server runs locally, ensure your **phone and PC are on the same network**
+and use your **local IP** (not `127.0.0.1`) for API calls.
+
+---
+
+## 🧠 Model Interaction
+
+The app sends requests like:
+
+```ts
+const formData = new FormData();
+formData.append("file", audioFile);
+formData.append("question", "今の風景についてどう思う？");
+formData.append("max_new_tokens", "128");
+
+const response = await fetch(`${API_URL}/generate`, {
+	method: "POST",
+	body: formData,
+});
+```
+
+Response (example):
+
+```json
+{
+	"prompt": "今の風景についてどう思う？",
+	"generated_text": "いい天気ですね、まるで旅の始まりのようです。"
+}
+```
+
+---
+
+## 🧩 Troubleshooting
+
+| Issue                    | Cause                  | Solution                                                     |
+| ------------------------ | ---------------------- | ------------------------------------------------------------ |
+| `Network request failed` | Wrong local IP         | Replace `127.0.0.1` with LAN IP                              |
+| `device offline (adb)`   | Emulator not connected | Restart Android Studio & run `adb reverse tcp:8000 tcp:8000` |
+| Audio not recorded       | Missing permission     | Check Expo `app.json` for `"AUDIO_RECORDING"`                |
+| `.env` values undefined  | Not loaded in Expo     | Add them to `app.config.ts > extra`                          |
+
+---
+
+## 🏁 Next Steps
+
+- Add **real-time streaming transcription (Whisper WebSocket)**
+- Integrate **LFM2-VL vision model** for camera-based commentary
+- Deploy backend to **Lambda Cloud** or **Vercel Edge Functions**
+
+---
+
+## 🏆 Acknowledgements
+
+This mobile app was developed as part of the
+[Liquid AI x W&B x Lambda Hackathon (Tokyo)](https://hackathons.liquid.ai/) —
+earning **2nd place** for creativity and human-centered AI design.
+
+Special thanks to:
+
+- **Hayato Hongo** — [LFM2-VL fine-tuning expert](https://huggingface.co/HayatoHongo)
+- **Rikka Botan** — [Model optimization and deployment](https://huggingface.co/RikkaBotan)
